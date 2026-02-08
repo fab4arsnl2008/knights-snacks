@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wylie Knights Snack Signup</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-[#15284B]">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // --- FIREBASE CONFIGURATION ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        // !!! PASTE YOUR KEYS FROM FIREBASE BELOW !!!
+        const firebaseConfig = {
+          apiKey: "AIzaSyDNVA6hBnk1F-TD_pheKUOLE6dwuiYfpZ4",
+          authDomain: "knights-snacks.firebaseapp.com",
+          projectId: "knights-snacks",
+          storageBucket: "knights-snacks.firebasestorage.app",
+          messagingSenderId: "680090441956",
+          appId: "1:680090441956:web:17d34365668fb494a434f1"
+        };
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        // --- APP CODE ---
+        const { Calendar: CalendarIcon, User, CheckCircle, Shield, X, Users, Cookie, ChevronRight, AlertTriangle } = lucide;
+
+        const COLORS = {
+            navy: '#15284B',
+            steel: '#3C6EAB',
+            white: '#FFFFFF',
+            silver: '#A8B3BD',
+            black: '#0D1115',
+        };
+
+        const SCHEDULE_DATES = [
+            { id: 'feb-28', display: 'Saturday, Feb 28', short: 'Feb 28' },
+            { id: 'mar-07', display: 'Saturday, Mar 7', short: 'Mar 7' },
+            { id: 'mar-21', display: 'Saturday, Mar 21', short: 'Mar 21' },
+            { id: 'mar-28', display: 'Saturday, Mar 28', short: 'Mar 28' },
+            { id: 'apr-04', display: 'Saturday, Apr 4', short: 'Apr 4' },
+            { id: 'apr-11', display: 'Saturday, Apr 11', short: 'Apr 11' },
+            { id: 'apr-25', display: 'Saturday, Apr 25', short: 'Apr 25' },
+            { id: 'may-02', display: 'Saturday, May 2', short: 'May 2' },
+        ];
+
+        const KnightsCalendar = () => {
+            const [viewMode, setViewMode] = React.useState('list'); 
+            const [selectedDate, setSelectedDate] = React.useState(null);
+            const [parentName, setParentName] = React.useState('');
+            const [signups, setSignups] = React.useState({});
+            const [user, setUser] = React.useState(null);
+
+            const appId = 'wylie-knights-2026';
+
+            React.useEffect(() => {
+                signInAnonymously(auth);
+                const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+                    setUser(currentUser);
+                });
+                return () => unsubscribeAuth();
+            }, []);
+
+            React.useEffect(() => {
+                const unsubscribe = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'snack_signups'), (snapshot) => {
+                    const data = {};
+                    snapshot.forEach((doc) => {
+                        data[doc.id] = doc.data();
+                    });
+                    setSignups(data);
+                });
+                return () => unsubscribe();
+            }, []);
+
+            const handleSignup = async () => {
+                if (!parentName.trim()) return;
+                try {
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'snack_signups', selectedDate.id), {
+                        parentName: parentName,
+                        userId: user ? user.uid : 'anon',
+                        timestamp: serverTimestamp()
+                    });
+                    setViewMode('list');
+                    setParentName('');
+                } catch (error) {
+                    console.error("Error signing up:", error);
+                    alert("Something went wrong. Please try again.");
+                }
+            };
+
+            const confirmDelete = async () => {
+                try {
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'snack_signups', selectedDate.id));
+                    setViewMode('list');
+                } catch (error) {
+                    console.error("Error removing signup:", error);
+                }
+            };
+
+            return (
+                <div className="min-h-screen pb-12 font-sans text-slate-900 bg-[#15284B]">
+                    <div className="bg-[#15284B] text-white p-6 shadow-xl border-b border-[#3C6EAB]">
+                        <div className="max-w-md mx-auto flex items-center gap-3">
+                            <img src="https://raw.githubusercontent.com/fab4arsnl2008/vividmemories/refs/heads/main/images/Knights_Logo.png" className="w-12 h-12 object-contain" alt="Logo" />
+                            <div>
+                                <h1 className="text-2xl font-black tracking-tight uppercase">Knights Snacks</h1>
+                                <p className="text-[#A8B3BD] text-xs font-medium tracking-wider">2026 SEASON</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="max-w-md mx-auto p-4 space-y-4">
+                        {viewMode === 'list' && (
+                            <div className="grid gap-3">
+                                {SCHEDULE_DATES.map((date) => {
+                                    const signup = signups[date.id];
+                                    const isTaken = !!signup;
+                                    
+                                    return (
+                                        <div 
+                                            key={date.id}
+                                            onClick={() => { setSelectedDate(date); setViewMode(isTaken ? 'manage' : 'signup'); }}
+                                            className={`relative overflow-hidden p-4 rounded-xl border-l-4 shadow-sm transition-all cursor-pointer ${
+                                                isTaken ? 'bg-white border-[#3C6EAB]' : 'bg-gray-50 border-gray-300 opacity-90'
+                                            }`}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <h3 className="font-bold text-gray-900">{date.display}</h3>
+                                                    {isTaken ? (
+                                                        <div className="flex items-center gap-1.5 mt-1 text-[#3C6EAB] font-bold">
+                                                            <Cookie size={16} />
+                                                            <span>{signup.parentName}</span>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center gap-1.5 mt-1 text-gray-400 text-sm font-medium">
+                                                            <Users size={16} />
+                                                            <span>Open Slot</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {isTaken ? <CheckCircle className="text-[#3C6EAB]" /> : <ChevronRight className="text-gray-300" />}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        {viewMode === 'signup' && (
+                            <div className="bg-white rounded-2xl p-6 shadow-xl animate-in slide-in-from-bottom-4 duration-300">
+                                <h2 className="text-xl font-bold text-[#15284B] mb-1">Claim Snack Duty</h2>
+                                <p className="text-gray-500 text-sm mb-6">For {selectedDate?.display}</p>
+                                
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Parent Name</label>
+                                <input
+                                    type="text"
+                                    value={parentName}
+                                    onChange={(e) => setParentName(e.target.value)}
+                                    placeholder="e.g. Rice Family"
+                                    className="w-full p-4 bg-gray-50 rounded-xl border border-gray-200 focus:border-[#3C6EAB] focus:ring-2 focus:ring-[#3C6EAB]/20 outline-none transition-all mb-6 font-medium"
+                                />
+                                
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button onClick={() => setViewMode('list')} className="py-3 rounded-xl font-bold text-gray-500 bg-gray-100">Cancel</button>
+                                    <button onClick={handleSignup} disabled={!parentName.trim()} className="py-3 rounded-xl font-bold text-white bg-[#3C6EAB] disabled:opacity-50">Confirm</button>
+                                </div>
+                            </div>
+                        )}
+
+                        {viewMode === 'manage' && (
+                            <div className="bg-white rounded-2xl p-6 shadow-xl border-t-4 border-red-500">
+                                <div className="text-center mb-6">
+                                    <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <AlertTriangle className="text-red-600" />
+                                    </div>
+                                    <h2 className="text-xl font-bold text-gray-900">Remove Signup?</h2>
+                                    <p className="text-gray-500 mt-2 text-sm">
+                                        This will remove <span className="font-bold text-gray-800">{signups[selectedDate?.id]?.parentName}</span> from {selectedDate?.display}.
+                                    </p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button onClick={() => setViewMode('list')} className="py-3 rounded-xl font-bold text-gray-600 bg-gray-100">Cancel</button>
+                                    <button onClick={confirmDelete} className="py-3 rounded-xl font-bold text-white bg-red-600">Yes, Remove</button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<KnightsCalendar />);
+    </script>
+</body>
+</html>
