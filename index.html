@@ -51,6 +51,8 @@
         const ChevronRight = (props) => <IconBase {...props}><path d="m9 18 6-6-6-6" /></IconBase>;
         const AlertTriangle = (props) => <IconBase {...props}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><line x1="12" x2="12" y1="9" y2="13" /><line x1="12" x2="12.01" y1="17" y2="17" /></IconBase>;
         const Cookie = (props) => <IconBase {...props}><path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5" /><path d="M8.5 8.5v.01" /><path d="M16 15.5v.01" /><path d="M12 12v.01" /><path d="M11 17v.01" /><path d="M7 14v.01" /></IconBase>;
+        const Download = (props) => <IconBase {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></IconBase>;
+        const ExternalLink = (props) => <IconBase {...props}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" x2="21" y1="14" y2="3" /></IconBase>;
 
         // --- CONSTANTS ---
         const COLORS = {
@@ -62,17 +64,88 @@
         };
 
         const SCHEDULE_DATES = [
-            { id: 'feb-28', display: 'Saturday, Feb 28 @1:10pm', short: 'Feb 28' },
-            { id: 'mar-28', display: 'Saturday, Mar 28 @11:15am', short: 'Mar 28' },
-            { id: 'apr-09', display: 'Thursday, Apr 9 @6:00pm', short: 'Apr 9' },
-            { id: 'apr-11', display: 'Saturday, Apr 11 @1:00pm', short: 'Apr 11' },
-            { id: 'apr-20', display: 'Monday, Apr 20 @6:00pm', short: 'Apr 20' },
-            { id: 'may-02', display: 'Saturday, May 2 @11:35am', short: 'May 2' },
-            { id: 'may-09', display: 'Saturday, May 9 @1:55pm', short: 'May 9' },
-            { id: 'may-11', display: 'Monday, May 11 @6:00pm', short: 'May 11' },
+            { id: 'feb-28', display: 'Saturday, Feb 28 @1:10pm', short: 'Feb 28', start: '20260228T131000', end: '20260228T141000' },
+            { id: 'mar-28', display: 'Saturday, Mar 28 @11:15am', short: 'Mar 28', start: '20260328T111500', end: '20260328T121500' },
+            { id: 'apr-09', display: 'Thursday, Apr 9 @6:00pm', short: 'Apr 9', start: '20260409T180000', end: '20260409T190000' },
+            { id: 'apr-11', display: 'Saturday, Apr 11 @1:00pm', short: 'Apr 11', start: '20260411T130000', end: '20260411T140000' },
+            { id: 'apr-20', display: 'Monday, Apr 20 @6:00pm', short: 'Apr 20', start: '20260420T180000', end: '20260420T190000' },
+            { id: 'may-02', display: 'Saturday, May 2 @11:35am', short: 'May 2', start: '20260502T113500', end: '20260502T123500' },
+            { id: 'may-09', display: 'Saturday, May 9 @1:55pm', short: 'May 9', start: '20260509T135500', end: '20260509T145500' },
+            { id: 'may-11', display: 'Monday, May 11 @6:00pm', short: 'May 11', start: '20260511T180000', end: '20260511T190000' },
         ];
 
         const appId = 'wylie-knights-2026';
+
+        // --- CALENDAR EXPORT HELPERS ---
+        const getGoogleCalendarUrl = (selectedDate, parentName, childName) => {
+            if (!selectedDate) return '#';
+            const title = 'Bring Snacks - WYSA Knights ⚽🧃';
+            const location = 'WYSA Soccer Fields';
+            const childText = childName ? ` for ${childName}'s team` : '';
+            const details = `Reminder: Snack duty${childText}!\n\nParent: ${parentName || 'Parent'}\nPlayer: ${childName || 'Player'}\nMatch: ${selectedDate.display}\n\nDon't forget healthy snacks and drinks for the team! Go Knights! ⚽🧃`;
+
+            const dates = `${selectedDate.start}/${selectedDate.end}`;
+
+            const params = new URLSearchParams({
+                action: 'TEMPLATE',
+                text: title,
+                dates: dates,
+                details: details,
+                location: location
+            });
+
+            return `https://calendar.google.com/calendar/render?${params.toString()}`;
+        };
+
+        const downloadIcsFile = (selectedDate, parentName, childName) => {
+            if (!selectedDate) return;
+            const title = 'Bring Snacks - WYSA Knights ⚽🧃';
+            const location = 'WYSA Soccer Fields';
+            const childText = childName ? ` for ${childName}'s team` : '';
+            const description = `Reminder: Snack duty${childText}!\\n\\nParent: ${parentName || 'Parent'}\\nPlayer: ${childName || 'Player'}\\nMatch: ${selectedDate.display}\\n\\nDon't forget healthy snacks and drinks for the team! Go Knights! ⚽🧃`;
+
+            const nowUtc = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+            const uid = `wysa-knights-snack-${selectedDate.id}-${Date.now()}@wysaknights.org`;
+
+            const icsLines = [
+                'BEGIN:VCALENDAR',
+                'VERSION:2.0',
+                'PRODID:-//WYSA Knights//Snack Schedule//EN',
+                'CALSCALE:GREGORIAN',
+                'METHOD:PUBLISH',
+                'BEGIN:VEVENT',
+                `UID:${uid}`,
+                `DTSTAMP:${nowUtc}`,
+                `DTSTART:${selectedDate.start}`,
+                `DTEND:${selectedDate.end}`,
+                `SUMMARY:${title}`,
+                `DESCRIPTION:${description}`,
+                `LOCATION:${location}`,
+                'STATUS:CONFIRMED',
+                'BEGIN:VALARM',
+                'ACTION:DISPLAY',
+                'DESCRIPTION:Snack Duty Reminder - WYSA Knights (Tomorrow)',
+                'TRIGGER:-P1D',
+                'END:VALARM',
+                'BEGIN:VALARM',
+                'ACTION:DISPLAY',
+                'DESCRIPTION:Snack Duty Reminder - WYSA Knights (2 Hours Prior)',
+                'TRIGGER:-PT2H',
+                'END:VALARM',
+                'END:VEVENT',
+                'END:VCALENDAR'
+            ];
+
+            const icsContent = icsLines.join('\r\n');
+            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.setAttribute('download', `knights-snack-${selectedDate.id}.ics`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(link.href);
+        };
 
         // --- MAIN COMPONENT ---
         const KnightsCalendar = () => {
@@ -83,6 +156,7 @@
             const [isModalOpen, setIsModalOpen] = React.useState(false);
             const [formData, setFormData] = React.useState({ parentName: '', childName: '' });
             const [viewMode, setViewMode] = React.useState('list'); // 'list', 'signup', 'manage', 'delete_confirm'
+            const [icsDownloaded, setIcsDownloaded] = React.useState(false);
 
             // Auth
             React.useEffect(() => {
@@ -117,6 +191,7 @@
             const handleDateClick = (dateObj) => {
                 const existingSignup = signups[dateObj.id];
                 setSelectedDate(dateObj);
+                setIcsDownloaded(false);
                 if (existingSignup) {
                     setFormData({
                         parentName: existingSignup.parentName,
@@ -167,9 +242,16 @@
                 setIsModalOpen(false);
                 setSelectedDate(null);
                 setFormData({ parentName: '', childName: '' });
+                setIcsDownloaded(false);
             };
 
             const initiateCancel = () => setViewMode('delete_confirm');
+
+            const handleDownloadIcs = () => {
+                downloadIcsFile(selectedDate, formData.parentName, formData.childName);
+                setIcsDownloaded(true);
+                setTimeout(() => setIcsDownloaded(false), 3000);
+            };
 
             // --- SUB-COMPONENTS ---
             const Header = () => (
@@ -308,18 +390,18 @@
                                                 {viewMode === 'delete_confirm' && 'Confirm Cancellation'}
                                             </h3>
                                             <p className="text-sm opacity-80 mt-1 flex items-center">
-                                                <Calendar className="w-3 h-3 mr-1" />
+                                                <Calendar className="w-3.5 h-3.5 mr-1.5" />
                                                 {selectedDate?.display}
                                             </p>
                                         </div>
-                                        <button onClick={closeModal} className="text-white/70 hover:text-white">
+                                        <button onClick={closeModal} className="text-white/70 hover:text-white transition-colors p-1">
                                             <X className="w-6 h-6" />
                                         </button>
                                     </div>
                                 </div>
 
                                 {/* Modal Body */}
-                                <div className="p-6">
+                                <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 85px)' }}>
                                     {viewMode === 'signup' && (
                                         <form onSubmit={handleSubmit} className="space-y-5">
                                             <div>
@@ -365,22 +447,71 @@
                                     )}
 
                                     {viewMode === 'manage' && (
-                                        <div className="space-y-6 text-center">
-                                            <div className="mx-auto w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                                                <CheckCircle className="w-10 h-10 text-green-600" />
+                                        <div className="space-y-5">
+                                            <div className="text-center">
+                                                <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-3">
+                                                    <CheckCircle className="w-9 h-9 text-green-600" />
+                                                </div>
+
+                                                <div>
+                                                    <h4 className="text-gray-500 text-xs uppercase tracking-wide font-bold">Provider</h4>
+                                                    <p className="text-2xl font-bold" style={{ color: COLORS.navy }}>{formData.parentName}</p>
+                                                    <p className="text-gray-600 text-sm font-medium mt-0.5">Parent of {formData.childName || 'Player'}</p>
+                                                </div>
                                             </div>
 
-                                            <div>
-                                                <h4 className="text-gray-500 text-sm uppercase tracking-wide font-bold">Provider</h4>
-                                                <p className="text-2xl font-bold" style={{ color: COLORS.navy }}>{formData.parentName}</p>
-                                                <p className="text-gray-500 text-sm mt-1">Parent of {formData.childName}</p>
+                                            {/* Add to Calendar Section */}
+                                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center">
+                                                        <Calendar className="w-4 h-4 mr-1.5" style={{ color: COLORS.steel }} />
+                                                        Add to Calendar
+                                                    </span>
+                                                    <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                                        🔔 Reminders Included
+                                                    </span>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                                                    {/* Google Calendar Link */}
+                                                    <a
+                                                        href={getGoogleCalendarUrl(selectedDate, formData.parentName, formData.childName)}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="flex items-center justify-center space-x-2 py-2.5 px-3 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 active:scale-95 text-gray-700 text-sm font-semibold transition-all shadow-sm group"
+                                                    >
+                                                        <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                                                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                                                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                                                        </svg>
+                                                        <span>Google Calendar</span>
+                                                        <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-600" />
+                                                    </a>
+
+                                                    {/* Apple / Outlook / .ics Download Button */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleDownloadIcs}
+                                                        className="flex items-center justify-center space-x-2 py-2.5 px-3 rounded-lg border text-white text-sm font-semibold transition-all shadow-sm active:scale-95 hover:brightness-110"
+                                                        style={{ backgroundColor: COLORS.steel, borderColor: COLORS.steel }}
+                                                    >
+                                                        <Download className="w-4 h-4 shrink-0" />
+                                                        <span>{icsDownloaded ? 'Downloaded .ics!' : 'Apple / Outlook (.ics)'}</span>
+                                                    </button>
+                                                </div>
+                                                <p className="text-[11px] text-gray-500 text-center pt-0.5">
+                                                    Automatically sets match notifications 1 day &amp; 2 hours prior
+                                                </p>
                                             </div>
 
-                                            <div className="pt-6 border-t border-gray-100">
-                                                <p className="text-sm text-gray-500 mb-4">Need to change plans? You can release this slot so another parent can sign up.</p>
+                                            {/* Cancellation Section */}
+                                            <div className="pt-3 border-t border-gray-100 text-center">
+                                                <p className="text-xs text-gray-500 mb-3">Need to change plans? You can release this slot so another parent can sign up.</p>
                                                 <button
                                                     onClick={initiateCancel}
-                                                    className="w-full py-3 rounded-xl font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 transition-all"
+                                                    className="w-full py-2.5 rounded-xl font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 transition-all text-sm"
                                                 >
                                                     Cancel Signup & Release Date
                                                 </button>
