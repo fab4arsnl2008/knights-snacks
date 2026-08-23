@@ -10,6 +10,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>WYSA Knights Snack Schedule</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -82,7 +83,7 @@
             const title = 'Bring Snacks - WYSA Knights ⚽🧃';
             const location = 'WYSA Soccer Fields';
             const childText = childName ? ` for ${childName}'s team` : '';
-            const details = `Reminder: Snack duty${childText}!\n\nParent: ${parentName || 'Parent'}\nPlayer: ${childName || 'Player'}\nMatch: ${selectedDate.display}\n\nDon't forget healthy snacks and drinks for the team! Go Knights! ⚽🧃`;
+            const details = `Reminder: Snack duty${childText}!\n\nParent: ${parentName || 'Parent'}\nPlayer: ${childName || 'Player'}\nMatch: ${selectedDate.display}\n\nRemember to bring snacks for the team today! Go Knights! ⚽🧃`;
 
             const dates = `${selectedDate.start}/${selectedDate.end}`;
 
@@ -91,7 +92,9 @@
                 text: title,
                 dates: dates,
                 details: details,
-                location: location
+                location: location,
+                ctz: 'America/Chicago',
+                add: 'reminder:1440,120'  // 1440 min = 1 day, 120 min = 2 hours
             });
 
             return `https://calendar.google.com/calendar/render?${params.toString()}`;
@@ -102,7 +105,7 @@
             const title = 'Bring Snacks - WYSA Knights ⚽🧃';
             const location = 'WYSA Soccer Fields';
             const childText = childName ? ` for ${childName}'s team` : '';
-            const description = `Reminder: Snack duty${childText}!\\n\\nParent: ${parentName || 'Parent'}\\nPlayer: ${childName || 'Player'}\\nMatch: ${selectedDate.display}\\n\\nDon't forget healthy snacks and drinks for the team! Go Knights! ⚽🧃`;
+            const description = `Reminder: Snack duty${childText}!\\n\\nParent: ${parentName || 'Parent'}\\nPlayer: ${childName || 'Player'}\\nMatch: ${selectedDate.display}\\n\\nRemember to bring snacks for the team today! Go Knights! ⚽🧃`;
 
             const nowUtc = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
             const uid = `wysa-knights-snack-${selectedDate.id}-${Date.now()}@wysaknights.org`;
@@ -116,8 +119,8 @@
                 'BEGIN:VEVENT',
                 `UID:${uid}`,
                 `DTSTAMP:${nowUtc}`,
-                `DTSTART:${selectedDate.start}`,
-                `DTEND:${selectedDate.end}`,
+                `DTSTART;TZID=America/Chicago:${selectedDate.start}`,
+                `DTEND;TZID=America/Chicago:${selectedDate.end}`,
                 `SUMMARY:${title}`,
                 `DESCRIPTION:${description}`,
                 `LOCATION:${location}`,
@@ -385,8 +388,8 @@
                                     <div className="flex justify-between items-start text-white">
                                         <div>
                                             <h3 className="text-xl font-bold">
-                                                {viewMode === 'signup' && 'Bring Snacks'}
-                                                {viewMode === 'manage' && 'Managed Slot'}
+                                                {viewMode === 'signup' && 'Snack Sign-up'}
+                                                {viewMode === 'manage' && 'Manage Slot'}
                                                 {viewMode === 'delete_confirm' && 'Confirm Cancellation'}
                                                 {viewMode === 'success' && 'Signup Confirmed! 🎉'}
                                             </h3>
