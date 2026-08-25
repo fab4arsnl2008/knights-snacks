@@ -1,0 +1,8 @@
+{
+  "name": "WYSA Knights Snack Schedule",
+  "description": "A snack schedule organizer and sign-up application for the WYSA Knights soccer team.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
