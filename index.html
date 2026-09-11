@@ -444,11 +444,17 @@
             // Data Sync
             React.useEffect(() => {
                 if (!user) return;
+                const validIds = new Set(SCHEDULE_DATES.map(d => d.id));
                 const unsubscribe = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'snack_signups'),
                     (snapshot) => {
                         const data = {};
-                        snapshot.forEach(doc => {
-                            data[doc.id] = doc.data();
+                        snapshot.forEach(docSnap => {
+                            if (validIds.has(docSnap.id)) {
+                                data[docSnap.id] = docSnap.data();
+                            } else {
+                                // Clean up legacy/orphan signup documents from previous schedules
+                                deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'snack_signups', docSnap.id)).catch(() => {});
+                            }
                         });
                         setSignups(data);
                         setLoading(false);
@@ -580,9 +586,9 @@
 
             const ProgressBar = () => {
                 const total = SCHEDULE_DATES.length;
-                const filled = Object.keys(signups).length;
-                const percentage = Math.round((filled / total) * 100);
-                const isAllFilled = filled === total;
+                const filled = SCHEDULE_DATES.filter(date => !!signups[date.id]).length;
+                const percentage = total > 0 ? Math.round((filled / total) * 100) : 0;
+                const isAllFilled = filled === total && total > 0;
 
                 return (
                     <div className="bg-white px-5 py-4 mb-5 shadow-sm border-b border-gray-100 rounded-b-2xl">
